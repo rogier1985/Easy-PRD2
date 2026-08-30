@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "easy-prd2"
+version = "0.1.0"
+description = "A safe local web wrapper around Rossum PRD2"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.100,<0.101",
+  "httpx>=0.25.2,<0.26",
+  "jinja2>=3.1,<4",
+  "pydantic>=2.9,<3",
+  "pyyaml>=6,<7",
+  "uvicorn[standard]>=0.20,<0.21",
+  "deployment-manager @ https://github.com/rossumai/deployment-manager/releases/download/v2.18.3/deployment_manager-2.18.3-py3-none-any.whl",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9", "pytest-asyncio>=0.24,<1"]
+
+[project.scripts]
+easy-prd2 = "easy_prd2.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/easy_prd2"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

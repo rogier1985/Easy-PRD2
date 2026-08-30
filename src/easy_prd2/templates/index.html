@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf }}">
+    <meta name="description" content="Safely copy Rossum demo configuration between organizations with PRD2.">
+    <title>Easy PRD2</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script type="module" src="/static/app.js"></script>
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Easy PRD2 home">
+        <span class="brand-mark">E2</span>
+        <span>Easy PRD2</span>
+      </a>
+      <nav class="tabs" aria-label="Primary">
+        <button class="tab active" data-view="copy">New copy</button>
+        <button class="tab" data-view="history">Run history <span id="history-count" class="badge">0</span></button>
+      </nav>
+      <div class="local-pill"><span></span> Local only</div>
+    </header>
+
+    <main>
+      <section id="copy-view" class="view active">
+        <div class="hero">
+          <div>
+            <p class="eyebrow">ROSSUM CONFIGURATION COPIER</p>
+            <h1>Move a great demo.<br><em>Leave the busywork.</em></h1>
+            <p class="hero-copy">Choose the source, choose the destination, and let PRD2 safely rebuild the configuration and its dependencies.</p>
+          </div>
+          <div class="safety-card">
+            <div class="shield">✓</div>
+            <div><strong>Create-only by design</strong><span>Existing target objects are never overwritten.</span></div>
+          </div>
+        </div>
+
+        <div class="stepper" aria-label="Copy progress">
+          <div class="step active" data-step="1"><span>1</span><div><b>Connect</b><small>Source & target</small></div></div>
+          <div class="step" data-step="2"><span>2</span><div><b>Select</b><small>Workspace & queues</small></div></div>
+          <div class="step" data-step="3"><span>3</span><div><b>Name</b><small>Target copies</small></div></div>
+          <div class="step" data-step="4"><span>4</span><div><b>Review</b><small>Plan & create</small></div></div>
+        </div>
+
+        <div id="notice" class="notice hidden" role="alert"></div>
+
+        <section id="panel-connect" class="panel step-panel active">
+          <div class="panel-heading"><div><p class="kicker">STEP 1</p><h2>Connect both environments</h2><p>Tokens stay in memory and disappear when Easy PRD2 closes.</p></div></div>
+          <div class="connection-grid">
+            <form id="source-form" class="connection-card">
+              <div class="card-label"><span class="dot source"></span>Source environment</div>
+              <label>Rossum URL<input name="api_base" placeholder="https://source.rossum.app" autocomplete="url" required></label>
+              <label>API token<div class="secret-field"><input name="token" type="password" placeholder="Paste token" autocomplete="off" required><button type="button" class="reveal" aria-label="Show token">Show</button></div></label>
+              <button class="secondary full" type="submit">Connect source</button>
+              <div class="connected hidden"></div>
+            </form>
+            <div class="flow-arrow">→</div>
+            <form id="target-form" class="connection-card">
+              <div class="card-label"><span class="dot target"></span>Target environment</div>
+              <label>Rossum URL<input name="api_base" placeholder="https://target.rossum.app" autocomplete="url" required></label>
+              <label>API token<div class="secret-field"><input name="token" type="password" placeholder="Paste token" autocomplete="off" required><button type="button" class="reveal" aria-label="Show token">Show</button></div></label>
+              <button class="secondary full" type="submit">Connect target</button>
+              <div class="connected hidden"></div>
+            </form>
+          </div>
+          <div class="panel-actions"><span></span><button id="to-select" class="primary" disabled>Choose configuration <span>→</span></button></div>
+        </section>
+
+        <section id="panel-select" class="panel step-panel">
+          <div class="panel-heading"><button class="back" data-back="1">←</button><div><p class="kicker">STEP 2</p><h2>Choose what to copy</h2><p>Select one source workspace and the queues you need.</p></div></div>
+          <div class="form-grid two">
+            <label>Source organization<select id="source-org"></select></label>
+            <label>Target organization<select id="target-org"></select></label>
+          </div>
+          <div class="form-grid one">
+            <label>Source workspace<select id="source-workspace"><option>Select an organization first</option></select></label>
+          </div>
+          <div class="queue-header"><div><h3>Queues</h3><p>Schema, inbox, hooks, rules, labels, templates and supported engines come along automatically.</p></div><button id="toggle-queues" class="text-button">Select all</button></div>
+          <div id="queue-list" class="queue-list empty-state">Choose a workspace to load queues.</div>
+          <div class="panel-actions"><span id="queue-summary">No queues selected</span><button id="to-name" class="primary" disabled>Name target copies <span>→</span></button></div>
+        </section>
+
+        <section id="panel-name" class="panel step-panel">
+          <div class="panel-heading"><button class="back" data-back="2">←</button><div><p class="kicker">STEP 3</p><h2>Name the target copies</h2><p>Names are prefilled. Change only what helps the demo stay clear.</p></div></div>
+          <div id="name-fields" class="name-fields"></div>
+          <label id="hook-owner-wrap" class="select-owner">Target hook owner<select id="hook-owner"></select><small>Used only for copied hooks.</small></label>
+          <div class="panel-actions"><span>Duplicate names are allowed and shown as warnings.</span><button id="build-plan" class="primary">Build deployment preview <span>→</span></button></div>
+        </section>
+
+        <section id="panel-review" class="panel step-panel">
+          <div class="panel-heading"><button class="back" data-back="3">←</button><div><p class="kicker">STEP 4</p><h2>Review the create plan</h2><p id="review-target"></p></div></div>
+          <div id="plan-stats" class="stats"></div>
+          <div id="plan-warnings"></div>
+          <div class="review-table-wrap"><table><thead><tr><th>Type</th><th>Source</th><th>Target</th><th>Includes</th></tr></thead><tbody id="plan-items"></tbody></table></div>
+          <div class="panel-actions danger-zone"><span><b>Nothing changes until you confirm.</b><small>This creates new objects only.</small></span><button id="execute-plan" class="primary create">Create copy</button></div>
+        </section>
+
+        <section id="panel-progress" class="panel step-panel progress-panel">
+          <div id="progress-icon" class="progress-icon"><span></span></div>
+          <p class="kicker">PRD2 DEPLOYMENT</p>
+          <h2 id="progress-title">Creating your copy…</h2>
+          <p id="progress-phase">Preparing deployment</p>
+          <div class="progress-track"><div id="progress-bar"></div></div>
+          <div id="result-details"></div>
+          <button id="new-copy" class="primary hidden">Start another copy</button>
+        </section>
+      </section>
+
+      <section id="history-view" class="view">
+        <div class="history-heading"><div><p class="eyebrow">LOCAL ACTIVITY</p><h1>Run history</h1><p>Non-secret records stored on this Mac.</p></div><button id="clear-history" class="secondary">Clear history</button></div>
+        <div id="history-list" class="history-list"></div>
+      </section>
+    </main>
+
+    <dialog id="rollback-dialog">
+      <form method="dialog" class="dialog-card">
+        <button class="dialog-close" value="cancel" aria-label="Close">×</button>
+        <p class="kicker">ROLLBACK PLAN</p>
+        <h2>Delete objects from this run?</h2>
+        <p id="rollback-description"></p>
+        <div id="rollback-objects" class="rollback-objects"></div>
+        <div id="rollback-blocked"></div>
+        <div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button id="confirm-rollback" value="default" class="danger">Delete created objects</button></div>
+      </form>
+    </dialog>
+  </body>
+</html>
+
