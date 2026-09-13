@@ -123,6 +123,29 @@ class Prd2Adapter:
             target["attribute_override"] = {"name": name}
         return [target]
 
+    @classmethod
+    def _action_queue_ids(cls, rule: dict[str, Any]) -> set[int]:
+        """Return queue IDs referenced anywhere inside a rule action."""
+        queue_ids: set[int] = set()
+
+        def visit(value: Any) -> None:
+            if isinstance(value, dict):
+                for key, child in value.items():
+                    if key in {"queue", "queues"}:
+                        references = child if isinstance(child, list) else [child]
+                        queue_ids.update(
+                            queue_id
+                            for reference in references
+                            if (queue_id := cls._id_from_url(reference)) is not None
+                        )
+                    visit(child)
+            elif isinstance(value, list):
+                for child in value:
+                    visit(child)
+
+        visit(rule.get("actions", []))
+        return queue_ids
+
     async def _download_source(
         self,
         workdir: Path,
@@ -299,6 +322,14 @@ class Prd2Adapter:
                 continue
             referenced = {self._id_from_url(url) for url in rule.get("queues", [])}
             if referenced.intersection(selected_queue_ids):
+                missing_action_queues = self._action_queue_ids(rule) - selected_queue_ids
+                if missing_action_queues:
+                    queue_list = ", ".join(str(queue_id) for queue_id in sorted(missing_action_queues))
+                    warnings.append(
+                        f"Rule ‘{rule.get('name', rule.get('id'))}’ references queue(s) outside the selection "
+                        f"in its actions ({queue_list}) and will not be copied."
+                    )
+                    continue
                 rules.append({"id": rule["id"], "name": rule["name"], "targets": self._target()})
                 items.append(PlanItem(type="rule", source_id=rule["id"], source_name=rule["name"], target_name=rule["name"], dependencies=["queues"]))
 
